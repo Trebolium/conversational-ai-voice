@@ -1,0 +1,32 @@
+# System files
+.DS_Store
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+**/*.csv
+**/*.json
+**/*.jsonl
+
+# repo generated files
+audio_test.wav
+transcript.txt
+response.txt
+output.wav
+dataset/csvs/collected_segment_names.txt
+
+# Virtual environments
+.venv
+
+# Fine-tuning generated artifacts
+dataset/csvs/
+dataset/finetune/data/
+dataset/finetune/mlx/adapters/
+dataset/finetune/cloud/adapters/
+
+# Personal
+TODO.md
