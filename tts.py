@@ -16,6 +16,17 @@ logger = logging.getLogger(__name__)
 _STREAM_DONE = object()
 
 
+def has_output_device() -> bool:
+    """Return whether a usable audio output device is available, so callers
+    can skip live playback (while still writing synthesized audio to file)
+    in headless/audio-less environments."""
+    try:
+        sd.query_devices(kind="output")
+        return True
+    except Exception:
+        return False
+
+
 class TextToSpeech:
     def __init__(self, voice: str = "alba"):
         self.model = TTSModel.load_model()

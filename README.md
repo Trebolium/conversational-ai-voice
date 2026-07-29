@@ -94,6 +94,12 @@ Press Enter to start recording, press Enter again to stop — there is no voice-
 recording is fully manual push-to-talk. Type `q`, `quit`, or `exit` to end the session and print the
 metrics summary.
 
+If no microphone is detected (for example on a headless server or cloud VM with no audio hardware), the
+assistant automatically falls back to a typed-text prompt (`You (type 'q' to quit):`) instead of
+recording, and skips loading the ASR model entirely. Likewise, if no audio output device is detected,
+synthesized speech is still written to `--tts-output` but playback is skipped. See
+[Audio device fallback](#audio-device-fallback) below.
+
 ---
 
 ## The voice assistant
@@ -139,15 +145,29 @@ configurable.
 | File | Role |
 |---|---|
 | `main.py` | Entrypoint. Argument parsing, model construction, the turn loop, metrics summary. |
-| `rec.py` | Microphone capture via `sounddevice`. `DEFAULT_SAMPLERATE = 44100`, `DEFAULT_CHANNELS = 1`. No VAD or silence auto-stop. |
+| `rec.py` | Microphone capture via `sounddevice`. `DEFAULT_SAMPLERATE = 44100`, `DEFAULT_CHANNELS = 1`. No VAD or silence auto-stop. Also provides `has_input_device()`. |
 | `asr.py` | Whisper wrapper (`faster-whisper`). Defaults `model="small"`, `device="cpu"`, `compute_type="int8"`, `transcribe(batch_size=16)`. Also provides `save_transcript`. |
 | `llm.py` | Backend selection (`active_backend()`), the `Message` type, and `generate_response()` for Claude and Ollama. |
-| `tts.py` | `pocket_tts` wrapper. `synthesize_to_file(..., play=False, prebuffer_seconds=1.0)`; `main.py` always calls it with `play=True`. |
+| `tts.py` | `pocket_tts` wrapper. `synthesize_to_file(..., play=False, prebuffer_seconds=1.0)`; `main.py` calls it with `play=True` only when an output device is available. Also provides `has_output_device()`. |
 | `metrics.py` | `measure()` context manager, a resource sampler polling every 50 ms, and `default_recorder` with `summary()` / `to_json()`. |
 
 `ASR` and `TextToSpeech` are constructed **once** and reused across turns, so models are not reloaded
 per turn. TTS playback is streamed: a background producer thread feeds a queue and a 1.0 s prebuffer is
 filled before the `sounddevice` output stream starts, so audio begins before synthesis completes.
+
+### Audio device fallback
+
+`main.py` probes `rec.has_input_device()` and `tts.has_output_device()` once at startup (both call
+`sounddevice.query_devices()` and catch the `PortAudioError` raised when no matching device exists —
+e.g. on a headless server or cloud VM with no audio hardware):
+
+- **No input device**: the `ASR` model is never constructed (nothing would ever call it), and each turn
+  prompts `You (type 'q' to quit):` for typed text instead of recording + transcribing. The typed text
+  is still written to `--transcript-file`, same as a real transcript.
+- **No output device**: `TextToSpeech.synthesize_to_file` is still called every turn and still writes
+  `--tts-output`, just with `play=False`, so no `sounddevice.OutputStream` is opened.
+
+The two are detected independently, so e.g. an input-only or output-only device is handled correctly.
 
 ### Files written per turn
 

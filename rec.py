@@ -11,6 +11,18 @@ DEFAULT_SAMPLERATE = 44100
 DEFAULT_CHANNELS = 1
 
 
+def has_input_device() -> bool:
+    """Return whether a usable audio input device is available. False in
+    headless/audio-less environments (e.g. a cloud VM with no PortAudio
+    devices), so callers can fall back to text input instead of letting
+    sd.InputStream raise."""
+    try:
+        sd.query_devices(kind="input")
+        return True
+    except Exception:
+        return False
+
+
 def record_audio(
     output_path: str | Path = "audio_test.wav",
     samplerate: int = DEFAULT_SAMPLERATE,
