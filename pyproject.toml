@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Brendan O'Connor", email = "brendan@soundpatrol.com" }
+    { name = "Brendan O'Connor", email = "brendan242424@gmail.com" }
 ]
 requires-python = ">=3.11"
 dependencies = [
